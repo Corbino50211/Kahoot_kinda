@@ -1,180 +1,79 @@
-import os
-import json
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 import qrcode
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+import os
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizzes.db'  # For testing locally
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
 
-if not os.path.exists('static'):
-    os.makedirs('static')
+# Models
+class Quiz(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    questions = db.relationship('Question', backref='quiz', lazy=True)
 
-# Load quizzes from a file
-def load_quizzes():
-    try:
-        with open('quizzes.json', 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+class Question(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_text = db.Column(db.String(250), nullable=False)
+    options = db.Column(db.String(500), nullable=False)  # Stored as a single string separated by | 
+    correct_answer = db.Column(db.String(100), nullable=False)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
 
-quizzes = load_quizzes()
-players = {}
-current_question_index = {}
-
-# Function to save quizzes
-def save_quizzes():
-    with open('quizzes.json', 'w') as f:
-        json.dump(quizzes, f, indent=4)
-
+# Routes
 @app.route('/')
-def index():
-    return render_template('index.html')
+def home():
+    quizzes = Quiz.query.all()
+    return render_template('quiz_list.html', quizzes=quizzes)
 
 @app.route('/create_quiz', methods=['GET', 'POST'])
 def create_quiz():
     if request.method == 'POST':
-        quiz_name = request.form.get('quiz_name')
-        question_text = request.form.get('question_text')
-        answers = request.form.get('answers').split(',')
-        correct_answer = request.form.get('correct_answer')
+        name = request.form['quiz_name']
+        quiz = Quiz(name=name)
+        db.session.add(quiz)
+        db.session.commit()
 
-        if quiz_name and question_text and answers and correct_answer:
-            quiz = {
-                "quiz_name": quiz_name,
-                "questions": [
-                    {
-                        "text": question_text,
-                        "options": [ans.strip() for ans in answers],
-                        "answer": correct_answer.strip()
-                    }
-                ]
-            }
+        num_questions = int(request.form['num_questions'])
+        for i in range(num_questions):
+            question_text = request.form.get(f'question_{i}')
+            options = request.form.get(f'options_{i}')
+            correct_answer = request.form.get(f'correct_answer_{i}')
+            question = Question(
+                question_text=question_text,
+                options=options,
+                correct_answer=correct_answer,
+                quiz_id=quiz.id
+            )
+            db.session.add(question)
+        db.session.commit()
 
-            # Add quiz to the quizzes dictionary
-            if quiz_name not in quizzes:
-                quizzes[quiz_name] = quiz
-            else:
-                quizzes[quiz_name]['questions'].append({
-                    "text": question_text,
-                    "options": [ans.strip() for ans in answers],
-                    "answer": correct_answer.strip()
-                })
+        # Generate QR code with quiz link
+        qr_link = url_for('join_quiz', quiz_id=quiz.id, _external=True)
+        qr = qrcode.make(qr_link)
+        qr_path = os.path.join('static', f'quiz_qr_{quiz.id}.png')
+        qr.save(qr_path)
 
-            # Save the quizzes to the file
-            save_quizzes()
-            return redirect(url_for('quiz_list'))
+        return redirect(url_for('home'))
 
     return render_template('create_quiz.html')
 
-@app.route('/quiz_list')
-def quiz_list():
-    return render_template('quiz_list.html', quizzes=quizzes)
-
-@app.route('/join_quiz', methods=['GET', 'POST'])
-def join_quiz():
+@app.route('/join_quiz/<int:quiz_id>', methods=['GET', 'POST'])
+def join_quiz(quiz_id):
+    quiz = Quiz.query.get_or_404(quiz_id)
     if request.method == 'POST':
-        quiz_name = request.form.get('quiz_name')
-        player_name = request.form.get('player_name')
+        player_name = request.form['player_name']
+        return redirect(url_for('play_quiz', quiz_id=quiz_id, player=player_name))
+    return render_template('join_quiz.html', quiz=quiz)
 
-        if quiz_name and player_name:
-            if quiz_name not in quizzes:
-                return "Quiz not found", 404
+@app.route('/play_quiz/<int:quiz_id>/<player>', methods=['GET'])
+def play_quiz(quiz_id, player):
+    quiz = Quiz.query.get_or_404(quiz_id)
+    return render_template('play_quiz.html', quiz=quiz, player=player)
 
-            if quiz_name not in players:
-                players[quiz_name] = {}
-
-            players[quiz_name][player_name] = 0  # Initialize player's score
-            current_question_index[quiz_name] = 0  # Start at first question
-            return redirect(url_for('quiz', quiz_name=quiz_name, player_name=player_name))
-
-    return render_template('join_quiz.html', quizzes=quizzes)
-
-@app.route('/quiz')
-def quiz():
-    quiz_name = request.args.get('quiz_name')
-    player_name = request.args.get('player_name')
-
-    if quiz_name not in quizzes:
-        return "Quiz not found", 404
-
-    quiz = quizzes[quiz_name]
-
-    # Get the current question
-    current_index = current_question_index.get(quiz_name, 0)
-    if current_index >= len(quiz['questions']):
-        return redirect(url_for('results', quiz_name=quiz_name, player_name=player_name))
-
-    question = quiz['questions'][current_index]
-
-    return render_template('quiz.html', quiz_name=quiz_name, player_name=player_name, question=question, question_number=current_index + 1)
-
-@app.route('/submit_answer', methods=['POST'])
-def submit_answer():
-    quiz_name = request.form.get('quiz_name')
-    player_name = request.form.get('player_name')
-    answer = request.form.get('answer')
-
-    if quiz_name not in quizzes:
-        return "Quiz not found", 404
-
-    quiz = quizzes[quiz_name]
-    current_index = current_question_index.get(quiz_name, 0)
-
-    if current_index >= len(quiz['questions']):
-        return redirect(url_for('results', quiz_name=quiz_name, player_name=player_name))
-
-    question = quiz['questions'][current_index]
-
-    # Check if the answer is correct
-    if answer == question['answer']:
-        players[quiz_name][player_name] += 1
-
-    # Move to the next question
-    current_question_index[quiz_name] += 1
-
-    return redirect(url_for('quiz', quiz_name=quiz_name, player_name=player_name))
-
-@app.route('/results')
-def results():
-    quiz_name = request.args.get('quiz_name')
-    player_name = request.args.get('player_name')
-
-    if quiz_name not in quizzes:
-        return "Quiz not found", 404
-
-    if player_name not in players[quiz_name]:
-        return "Player not found", 404
-
-    score = players[quiz_name][player_name]
-    return render_template('results.html', score=score, player_name=player_name)
-
-@app.route('/generate_qr', methods=['POST'])
-def generate_qr():
-    quiz_name = request.form.get('quiz_name')
-    if quiz_name and quiz_name in quizzes:
-        qr_data = url_for('quiz', quiz_name=quiz_name, _external=True)
-
-        # Generate the QR code for the quiz URL
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(qr_data)
-        qr.make(fit=True)
-
-        # Save the QR code image in the static folder
-        qr_img = qr.make_image(fill='black', back_color='white')
-        qr_code_path = os.path.join('static', f'{quiz_name}_qr.png')
-        qr_img.save(qr_code_path)
-
-        # Provide the URL of the saved QR code image
-        qr_code_url = url_for('static', filename=f'{quiz_name}_qr.png')
-
-        return render_template('quiz_qr.html', qr_code_url=qr_code_url, quiz_name=quiz_name)
-
-    return "Error: Quiz not found!", 404
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
+if __name__ == '__main__':
+    if not os.path.exists('quizzes.db'):
+        with app.app_context():
+            db.create_all()
+    app.run(host='0.0.0.0', port=5000, debug=True)
