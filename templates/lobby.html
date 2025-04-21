@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lobby</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Players in Lobby:</h1>
+    <ul>
+        {% for player in players %}
+        <li>{{ player }}</li>
+        {% endfor %}
+    </ul>
+    <form action="/start_quiz" method="POST">
+        <button type="submit">Start Quiz</button>
+    </form>
+</body>
+</html>

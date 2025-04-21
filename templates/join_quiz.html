@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Quiz</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            text-align: center;
+        }
+
+        button {
+            background-color: #444;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #555;
+            }
+    </style>
+</head>
+<body>
+    <h1>Join a Quiz</h1>
+    <form action="/join_quiz" method="post">
+        <label for="player_name">Enter your Name:</label><br>
+        <input type="text" name="player_name" required><br><br>
+
+        <label for="quiz_id">Select Quiz:</label><br>
+        <select name="quiz_id" required>
+            {% for quiz_id, quiz in quizzes.items() %}
+            <option value="{{ quiz_id }}">{{ quiz['name'] }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Join</button>
+    </form>
+</body>
+</html>

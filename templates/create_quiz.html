@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quiz</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            text-align: center;
+        }
+
+        button {
+            background-color: #444;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #555;
+            }
+
+        input, select {
+            padding: 10px;
+            margin: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+        }
+
+        label {
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create a New Quiz</h1>
+    <form action="/create_quiz" method="post">
+        <label for="quiz_name">Quiz Name:</label><br>
+        <input type="text" name="quiz_name" required><br><br>
+
+        <label for="questions">Questions (comma separated):</label><br>
+        <input type="text" name="questions" required><br><br>
+
+        <label for="answers">Answers (comma separated):</label><br>
+        <input type="text" name="answers" required><br><br>
+
+        <label for="correct_answer">Correct Answer:</label><br>
+        <input type="text" name="correct_answer" required><br><br>
+
+        <button type="submit">Create Quiz</button>
+    </form>
+</body>
+</html>

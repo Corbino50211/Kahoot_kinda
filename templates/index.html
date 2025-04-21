@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz App</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            text-align: center;
+        }
+
+        button {
+            background-color: #444;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background-color: #555;
+            }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Quiz App</h1>
+    <form action="/join_quiz" method="get">
+        <button type="submit">Join a Quiz</button>
+    </form>
+    <form action="/create_quiz" method="get">
+        <button type="submit">Create a Quiz</button>
+    </form>
+</body>
+</html>
