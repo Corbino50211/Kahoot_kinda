@@ -8,22 +8,22 @@
             background: #222;
             color: white;
             text-align: center;
-            padding: 50px;
+            font-family: sans-serif;
         }
 
         table {
-            margin: 0 auto;
+            margin: auto;
             border-collapse: collapse;
         }
 
         td, th {
             padding: 10px;
-            border: 1px solid white;
+            border: 1px solid #555;
         }
     </style>
 </head>
 <body>
-    <h1>Quiz Results!</h1>
+    <h1>Final Scores</h1>
     <table>
         <tr><th>Player</th><th>Score</th></tr>
         {% for player, score in scores.items() %}

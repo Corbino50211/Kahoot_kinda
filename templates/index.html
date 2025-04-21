@@ -2,38 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz App</title>
+    <title>Quiz Central</title>
     <style>
         body {
             background: #222;
             color: white;
             text-align: center;
+            font-family: sans-serif;
         }
 
-        button {
-            background-color: #444;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            font-size: 16px;
+        input, button {
+            padding: 10px;
             margin: 10px;
-            cursor: pointer;
+            font-size: 16px;
         }
-
-            button:hover {
-                background-color: #555;
-            }
     </style>
 </head>
 <body>
-    <h1>Welcome to the Quiz App</h1>
-    <form action="/join_quiz" method="get">
-        <button type="submit">Join a Quiz</button>
+    <h1>Create a New Quiz</h1>
+    <form action="/create_quiz" method="POST">
+        <input type="text" name="question" placeholder="Question" required><br>
+        <input type="text" name="options" placeholder="Comma-separated options" required><br>
+        <input type="text" name="answer" placeholder="Correct answer" required><br>
+        <button type="submit">Save Question</button>
     </form>
-    <form action="/create_quiz" method="get">
-        <button type="submit">Create a Quiz</button>
+
+    <h2>Or select an existing quiz:</h2>
+    <form action="/lobby" method="GET">
+        <input type="text" name="quiz_id" placeholder="Enter Quiz ID" required>
+        <button type="submit">Join Lobby</button>
     </form>
 </body>
 </html>
